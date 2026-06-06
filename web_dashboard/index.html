@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sports Tracker Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="background-blobs">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="blob blob-3"></div>
+    </div>
+
+    <div class="container">
+        <header>
+            <div class="header-left">
+                <h1>SPORT<span>TRACKER</span></h1>
+                <p class="subtitle">Live Sensor Telemetry</p>
+            </div>
+            <div class="header-right">
+                <div class="status-indicator">
+                    <span class="dot disconnected" id="connection-dot"></span>
+                    <span id="connection-status">Disconnected</span>
+                </div>
+                <button id="connect-btn" class="connect-btn">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7 7 10 10"/><path d="M17 7 7 17"/></svg>
+                    Connect Device
+                </button>
+            </div>
+        </header>
+
+        <main class="dashboard-grid">
+            <!-- Terminal 1: IMU (GY-85) -->
+            <div class="terminal-card">
+                <div class="terminal-header">
+                    <div class="window-controls">
+                        <span class="control close"></span>
+                        <span class="control minimize"></span>
+                        <span class="control maximize"></span>
+                    </div>
+                    <h2 class="terminal-title">GY-85 IMU</h2>
+                    <span class="data-counter" id="imu-counter">0</span>
+                </div>
+                <div class="terminal-body" id="imu-log">
+                    <div class="log-entry system">Initializing GY-85 Module...</div>
+                </div>
+            </div>
+
+            <!-- Terminal 2: HR SENSOR (AD8232) -->
+            <div class="terminal-card">
+                <div class="terminal-header">
+                    <div class="window-controls">
+                        <span class="control close"></span>
+                        <span class="control minimize"></span>
+                        <span class="control maximize"></span>
+                    </div>
+                    <h2 class="terminal-title">AD8232 HR SENSOR</h2>
+                    <span class="data-counter" id="hr-counter">0</span>
+                </div>
+                <div class="terminal-body" id="hr-log">
+                    <div class="log-entry system">Initializing AD8232 Module...</div>
+                </div>
+            </div>
+
+            <!-- Terminal 2: GPS -->
+            <div class="terminal-card">
+                <div class="terminal-header">
+                    <div class="window-controls">
+                        <span class="control close"></span>
+                        <span class="control minimize"></span>
+                        <span class="control maximize"></span>
+                    </div>
+                    <h2 class="terminal-title">GPS TELEMETRY</h2>
+                    <span class="data-counter" id="gps-counter">0</span>
+                </div>
+                <div class="terminal-body" id="gps-log">
+                    <div class="log-entry system">Waiting for GPS Fix...</div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

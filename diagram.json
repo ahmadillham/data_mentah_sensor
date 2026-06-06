@@ -1,0 +1,39 @@
+{
+  "version": 1,
+  "author": "ahmad_ilham",
+  "editor": "wokwi",
+  "parts": [
+    {
+      "type": "wokwi-breadboard-half",
+      "id": "bb1",
+      "top": -127.8,
+      "left": -26,
+      "attrs": {}
+    },
+    {
+      "type": "board-esp32-devkit-c-v4",
+      "id": "esp",
+      "top": 96,
+      "left": 110.44,
+      "attrs": {}
+    },
+    {
+      "type": "wokwi-slide-potentiometer",
+      "id": "pot1",
+      "top": -110.2,
+      "left": 37.4,
+      "attrs": { "travelLength": "30" }
+    }
+  ],
+  "connections": [
+    ["esp:TX", "$serialMonitor:RX", "", []],
+    ["esp:RX", "$serialMonitor:TX", "", []],
+    ["pot1:VCC", "bb1:5t.b", "", ["$bb"]],
+    ["pot1:SIG", "bb1:5t.d", "", ["$bb"]],
+    ["pot1:VCC", "bb1:bp.2", "red", ["h0"]],
+    ["pot1:SIG", "bb1:bn.3", "green", ["h0"]],
+    ["bb1:bp.6", "esp:3V3", "green", ["v0"]],
+    ["bb1:bn.8", "esp:32", "green", ["v0"]]
+  ],
+  "dependencies": {}
+}
