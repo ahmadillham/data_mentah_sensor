@@ -4,24 +4,24 @@ const connectionStatus = document.getElementById('connection-status');
 const connectionDot = document.getElementById('connection-dot');
 const imuLog = document.getElementById('imu-log');
 const hrLog = document.getElementById('hr-log');
-const gpsLog = document.getElementById('gps-log');
+const activityLog = document.getElementById('activity-log');
 
 // Counters
 const logCounters = {
     'imu-log': 0,
     'hr-log': 0,
-    'gps-log': 0
+    'activity-log': 0
 };
 const counterElems = {
     'imu-log': document.getElementById('imu-counter'),
     'hr-log': document.getElementById('hr-counter'),
-    'gps-log': document.getElementById('gps-counter')
+    'activity-log': document.getElementById('activity-counter')
 };
 
 // BLE UUIDs (Matching config.h)
-const SPORT_SERVICE_UUID = "6e57fc85-a1b3-4f8e-9bd2-0a5e8e6e5c10";
-const CHAR_RAW_UUID      = "6e57fc85-a1b3-4f8e-9bd2-0a5e8e6e5c14";
-const CHAR_GPS_UUID      = "6e57fc85-a1b3-4f8e-9bd2-0a5e8e6e5c12";
+const SPORT_SERVICE_UUID    = "6e57fc85-a1b3-4f8e-9bd2-0a5e8e6e5c10";
+const CHAR_SENSOR_DATA_UUID = "6e57fc85-a1b3-4f8e-9bd2-0a5e8e6e5c11"; // Processed sensor data
+const CHAR_RAW_UUID         = "6e57fc85-a1b3-4f8e-9bd2-0a5e8e6e5c14"; // Raw sensor data
 
 // State
 let bluetoothDevice = null;
@@ -43,14 +43,14 @@ function appendLog(terminalElem, message, type = 'data') {
     timestampSpan.className = 'timestamp';
     timestampSpan.textContent = getTimestamp();
     
-    const messageNode = document.createTextNode(` ${message}`);
-    
-    if(message.includes("Fix Acquired") || message.includes("WARNING") || message.includes("ERROR")) {
-        entry.innerHTML = `<span class="timestamp">${getTimestamp()}</span> <span class="highlight">${message}</span>`;
-    } else {
-        entry.appendChild(timestampSpan);
-        entry.appendChild(messageNode);
+    const messageSpan = document.createElement('span');
+    if (message.includes("WARNING") || message.includes("ERROR")) {
+        messageSpan.className = 'highlight';
     }
+    messageSpan.textContent = ` ${message}`;
+
+    entry.appendChild(timestampSpan);
+    entry.appendChild(messageSpan);
 
     terminalElem.appendChild(entry);
     
@@ -69,52 +69,63 @@ function appendLog(terminalElem, message, type = 'data') {
     }
 }
 
-// Parse Raw Sensor Data Struct
+// Parse Raw Sensor Data Struct (20 bytes: accel + gyro + mag + hrRaw)
 function handleRawData(event) {
     const view = event.target.value;
     
-    // Check byte length to ensure we have exactly 14 bytes
-    if (view.byteLength !== 14) return;
+    if (view.byteLength === 20) {
+        const ax = view.getInt16(0, true);
+        const ay = view.getInt16(2, true);
+        const az = view.getInt16(4, true);
+        const gx = view.getInt16(6, true);
+        const gy = view.getInt16(8, true);
+        const gz = view.getInt16(10, true);
+        const mx = view.getInt16(12, true);
+        const my = view.getInt16(14, true);
+        const mz = view.getInt16(16, true);
+        const hrRaw = view.getUint16(18, true);
 
-    // Little Endian parsing
-    const ax = view.getInt16(0, true);
-    const ay = view.getInt16(2, true);
-    const az = view.getInt16(4, true);
-    const gx = view.getInt16(6, true);
-    const gy = view.getInt16(8, true);
-    const gz = view.getInt16(10, true);
-    const hrRaw = view.getUint16(12, true);
-
-    // Render HR Raw Data
-    const hrMsg = `ADC_RAW:${hrRaw}`;
-    appendLog(hrLog, hrMsg, 'data');
-
-    // Render IMU Raw Data
-    const imuMsg = `AX:${ax} AY:${ay} AZ:${az} | GX:${gx} GY:${gy} GZ:${gz}`;
-    appendLog(imuLog, imuMsg, 'data');
+        appendLog(hrLog, `ADC_RAW:${hrRaw}`, 'data');
+        appendLog(imuLog, `AX:${ax} AY:${ay} AZ:${az} | GX:${gx} GY:${gy} GZ:${gz} | MX:${mx} MY:${my} MZ:${mz}`, 'data');
+    }
 }
 
-// Parse GPS Data Struct
-function handleGpsData(event) {
+// Parse Processed Sensor Data Struct (18 bytes: hr + steps + pushups + pitch + roll)
+function handleSensorData(event) {
     const view = event.target.value;
     
-    const lat = view.getFloat64(0, true).toFixed(6);
-    const lng = view.getFloat64(8, true).toFixed(6);
-    const speed = view.getFloat32(16, true).toFixed(1);
-    const dist = view.getFloat32(20, true).toFixed(2);
-    const sats = view.getUint8(24);
-    const fix = view.getUint8(25);
+    if (view.byteLength === 18) {
+        const hr = view.getUint16(0, true);
+        const steps = view.getUint32(2, true);
+        const pushups = view.getUint32(6, true);
+        const pitch = view.getFloat32(10, true).toFixed(1);
+        const roll = view.getFloat32(14, true).toFixed(1);
 
-    if (fix === 1) {
-        appendLog(gpsLog, `LAT:${lat} LNG:${lng} SPD:${speed}km/h DIST:${dist}km SATS:${sats}`, 'data');
-    } else {
-        appendLog(gpsLog, `Waiting for Fix... (Satellites: ${sats})`, 'warn');
+        appendLog(hrLog, `BPM:${hr}`, 'data');
+        appendLog(activityLog, `STEPS:${steps} PUSHUPS:${pushups} PITCH:${pitch}° ROLL:${roll}°`, 'data');
+    }
+}
+
+// Helper: Try subscribing to a BLE characteristic
+async function trySubscribe(service, uuid, handler, label) {
+    try {
+        const char = await service.getCharacteristic(uuid);
+        await char.startNotifications();
+        char.addEventListener('characteristicvaluechanged', handler);
+        console.log(`Subscribed to ${label}`);
+        return true;
+    } catch (e) {
+        console.warn(`${label} not available: ${e.message}`);
+        return false;
     }
 }
 
 // Disconnect handler
 function onDisconnected(event) {
     console.log("Device disconnected.");
+    appendLog(imuLog, 'BLE Disconnected.', 'warn');
+    appendLog(hrLog, 'BLE Disconnected.', 'warn');
+    appendLog(activityLog, 'BLE Disconnected.', 'warn');
     resetUI();
 }
 
@@ -130,28 +141,28 @@ function resetUI() {
 // Web Bluetooth Connection Logic
 connectBtn.addEventListener('click', async () => {
     if (bluetoothDevice && bluetoothDevice.gatt.connected) {
-        // Disconnect
         bluetoothDevice.gatt.disconnect();
         return;
     }
 
     try {
         if (!navigator.bluetooth) {
-            console.error("Web Bluetooth API not supported in this browser. Please use Chrome/Edge and ensure you are running on localhost or HTTPS.");
+            const errMsg = "Web Bluetooth API not supported. Use Chrome/Edge on localhost or HTTPS.";
+            console.error(errMsg);
+            appendLog(imuLog, `ERROR: ${errMsg}`, 'error');
             return;
         }
 
         console.log("Requesting Bluetooth Device...");
         
         bluetoothDevice = await navigator.bluetooth.requestDevice({
-            filters: [{ namePrefix: "SportTrackerRaw" }],
+            filters: [{ namePrefix: "SportTracker" }],
             optionalServices: [SPORT_SERVICE_UUID]
         });
 
         bluetoothDevice.addEventListener('gattserverdisconnected', onDisconnected);
 
         console.log(`Connecting to GATT Server on ${bluetoothDevice.name}...`);
-        
         connectBtn.innerHTML = `CONNECTING...`;
         
         server = await bluetoothDevice.gatt.connect();
@@ -159,17 +170,22 @@ connectBtn.addEventListener('click', async () => {
         console.log("Connected to GATT Server. Getting Services...");
         const service = await server.getPrimaryService(SPORT_SERVICE_UUID);
 
-        // Subscribe to Raw Sensor Data
-        const rawChar = await service.getCharacteristic(CHAR_RAW_UUID);
-        await rawChar.startNotifications();
-        rawChar.addEventListener('characteristicvaluechanged', handleRawData);
-        console.log("Subscribed to Raw Sensor Characteristic.");
+        // Subscribe to Raw Data
+        const hasRaw = await trySubscribe(service, CHAR_RAW_UUID, handleRawData, "Raw Sensor Data");
+        if (hasRaw) {
+            appendLog(imuLog, 'Streaming raw IMU data...', 'system');
+            appendLog(hrLog, 'Streaming raw ADC data...', 'system');
+        } else {
+            appendLog(imuLog, 'WARNING: Raw characteristic not found!', 'warn');
+        }
 
-        // Subscribe to GPS Data
-        const gpsChar = await service.getCharacteristic(CHAR_GPS_UUID);
-        await gpsChar.startNotifications();
-        gpsChar.addEventListener('characteristicvaluechanged', handleGpsData);
-        console.log("Subscribed to GPS Characteristic.");
+        // Subscribe to Processed Activity Data
+        const hasSensor = await trySubscribe(service, CHAR_SENSOR_DATA_UUID, handleSensorData, "Activity Data");
+        if (hasSensor) {
+            appendLog(activityLog, 'Streaming activity tracking data...', 'system');
+        } else {
+            appendLog(activityLog, 'WARNING: Activity characteristic not found!', 'warn');
+        }
 
         // Update UI
         connectionStatus.textContent = 'Connected (BLE)';
@@ -179,6 +195,7 @@ connectBtn.addEventListener('click', async () => {
 
     } catch (error) {
         console.error(`ERROR: ${error.message}`);
+        appendLog(imuLog, `ERROR: ${error.message}`, 'error');
         resetUI();
     }
 });

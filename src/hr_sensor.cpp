@@ -17,6 +17,12 @@
 #include "hr_sensor.h"
 #include "config.h"
 
+// HR algorithm constants (local to this module)
+#define HR_DERIV_MIN_THRESH         1500.0f // Minimum squared derivative threshold
+#define HR_MIN_IBI_MS               300     // Min inter-beat interval (200 BPM max)
+#define HR_MAX_IBI_MS               1500    // Max inter-beat interval (40 BPM min)
+#define HR_TIMEOUT_MS               3000    // No peak for 3s = signal lost
+
 // ── State variables ──
 static volatile uint16_t s_bpm = 0;
 static int s_lastAdc = 0;

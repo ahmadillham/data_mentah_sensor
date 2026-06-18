@@ -7,6 +7,20 @@
 #include "config.h"
 #include <math.h>
 
+// Algorithm constants (local to this module)
+#define STEP_THRESHOLD              1.25f
+#define STEP_DEBOUNCE_MS            300
+#define JUMP_THRESHOLD              1.90f
+#define JUMP_DEBOUNCE_MS            0
+#define PUSHUP_THRESHOLD            1.25f
+#define PUSHUP_DEBOUNCE_MS          1000
+#define SQUAT_THRESHOLD             1.15f
+#define SQUAT_DEBOUNCE_MS           800
+#define PLANK_ANGLE_TOLERANCE       15.0f
+#define COMPLEMENTARY_ALPHA         0.96f
+#define IMU_PITCH_OFFSET            -13.3f
+#define IMU_ROLL_OFFSET             -3.7f
+
 static uint32_t s_stepCount = 0;
 static float    s_stepFiltered = 1.0f;
 static bool     s_stepAbove = false;

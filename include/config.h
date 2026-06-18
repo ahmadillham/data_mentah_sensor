@@ -1,8 +1,8 @@
 /**
  * @file config.h
- * @brief Central configuration for the ESP32 Sports Tracker.
+ * @brief Central configuration for the ESP32 Raw Sensor Monitor.
  *
- * All pin definitions, BLE UUIDs, timing constants, sport mode enums,
+ * All pin definitions, BLE UUIDs, timing constants,
  * and shared data structures are defined here.
  */
 
@@ -44,45 +44,27 @@
 // ──────────────────────────────────────────────
 //  BLE UUIDs
 // ──────────────────────────────────────────────
-
-// Custom Sport Service
 #define SERVICE_SPORT_UUID          "6e57fc85-a1b3-4f8e-9bd2-0a5e8e6e5c10"
 #define CHAR_SENSOR_DATA_UUID       "6e57fc85-a1b3-4f8e-9bd2-0a5e8e6e5c11"
 #define CHAR_GPS_DATA_UUID          "6e57fc85-a1b3-4f8e-9bd2-0a5e8e6e5c12"
-#define CHAR_COMMAND_UUID           "6e57fc85-a1b3-4f8e-9bd2-0a5e8e6e5c13"
 #define CHAR_RAW_DATA_UUID          "6e57fc85-a1b3-4f8e-9bd2-0a5e8e6e5c14"
 
 // BLE Device Name
 #define BLE_DEVICE_NAME             "SportTrackerRaw"
 
 // ──────────────────────────────────────────────
-//  Sport Mode Enum
-// ──────────────────────────────────────────────
-enum SportMode : uint8_t {
-    MODE_IDLE       = 0x00,
-    MODE_RUNNING    = 0x01,
-    MODE_CYCLING    = 0x02,
-    MODE_JUMP_ROPE  = 0x03,
-    MODE_PUSHUP     = 0x04,
-    MODE_SQUAT      = 0x05,
-    MODE_PLANK      = 0x06,
-    MODE_HR_MONITOR = 0x07,
-    MODE_POSTURE    = 0x08
-};
-
-// ──────────────────────────────────────────────
 //  Shared Data Structures
 // ──────────────────────────────────────────────
 
 /**
- * @brief Sensor data shared between Core 1 (writer) and Core 0 (BLE reader).
+ * @brief Processed sensor data for dashboard display.
  */
 struct SensorData {
-    uint16_t heartRate;     // BPM (0 = leads off)
-    uint32_t stepCount;     // Running steps
-    uint32_t jumpCount;     // Jump rope reps
-    float    pitch;         // Posture: pitch in degrees
-    float    roll;          // Posture: roll in degrees
+    uint16_t heartRate;     // Processed BPM
+    uint32_t stepCount;
+    uint32_t pushupCount;
+    float    pitch;         // Posture pitch in degrees
+    float    roll;          // Posture roll in degrees
 };
 
 /**
@@ -98,20 +80,13 @@ struct GPSData {
 };
 
 /**
- * @brief Command data received from the phone via BLE RX characteristic.
- */
-struct CommandData {
-    SportMode sportMode;
-    uint16_t  maxHR;        // Maximum heart rate threshold for warning
-};
-
-/**
  * @brief Raw sensor data directly from hardware.
  */
 struct RawSensorData {
     int16_t ax, ay, az;
     int16_t gx, gy, gz;
-    uint16_t hrRaw;         // Raw ADC value from AD8232
+    int16_t mx, my, mz;     // Raw magnetometer values from HMC5883L
+    uint16_t hrRaw;          // Raw ADC value from AD8232
 };
 
 // ──────────────────────────────────────────────
@@ -120,60 +95,17 @@ struct RawSensorData {
 extern SemaphoreHandle_t xDataMutex;
 extern SensorData        g_sensorData;
 extern GPSData           g_gpsData;
-extern CommandData       g_commandData;
 extern RawSensorData     g_rawSensorData;
 extern volatile bool     g_bleConnected;
 extern volatile bool     g_gpsLockAcquired;
-extern volatile unsigned long g_hrMutedUntil;
 
 // ──────────────────────────────────────────────
 //  Timing Constants (milliseconds)
 // ──────────────────────────────────────────────
-#define SENSOR_POLL_INTERVAL_MS     20    // 50 Hz for IMU + HR
-#define BLE_NOTIFY_INTERVAL_MS      20    // 50 Hz BLE notifications (Real-time over USB)
+#define SENSOR_POLL_INTERVAL_MS     20    // 50 Hz for IMU
+#define BLE_NOTIFY_INTERVAL_MS      20    // 50 Hz BLE notifications
 #define BUZZER_TICK_INTERVAL_MS     10    // 100 Hz buzzer state machine
-
-// ──────────────────────────────────────────────
-//  Algorithm Constants
-// ──────────────────────────────────────────────
-
-// Step detection
-#define STEP_THRESHOLD              1.25f   // G-force threshold for step peak
-#define STEP_DEBOUNCE_MS            300     // Minimum ms between steps
-
-// Jump detection
-#define JUMP_THRESHOLD              1.90f   // G-force threshold for jump peak
-#define JUMP_DEBOUNCE_MS            0       // Disabled as requested (was 450)
-
-// Push-up detection
-#define PUSHUP_THRESHOLD            1.25f   // G-force threshold for push-up peak
-#define PUSHUP_DEBOUNCE_MS          1000    // Minimum ms between push-ups
-
-// Squat detection
-#define SQUAT_THRESHOLD             1.15f   // G-force threshold for squat peak
-#define SQUAT_DEBOUNCE_MS           800     // Minimum ms between squats
-
-// Plank & Posture
-#define PLANK_ANGLE_TOLERANCE       15.0f   // Max degrees of deviation before warning
-#define POSTURE_MAX_ANGLE           15.0f   // Max degrees for general posture (pitch/roll)
-#define POSTURE_WARN_DELAY_MS       5000    // 5 seconds delay before buzzer sounds
-
-// HR detection
-#define HR_SAMPLE_RATE_MS           5       // 200 Hz analog sampling
-#define HR_DERIV_MIN_THRESH         1500.0f // Minimum squared derivative threshold
-#define HR_MIN_IBI_MS               300     // Min inter-beat interval (200 BPM max)
-#define HR_MAX_IBI_MS               1500    // Max inter-beat interval (40 BPM min)
-#define HR_TIMEOUT_MS               3000    // No peak for 3s = signal lost
-#define HR_WARN_ACTIVE_MS           30000   // Warning buzzes for 30s
-#define HR_WARN_COOLDOWN_MS         30000   // Warning rests for 30s
-#define HR_WARN_MUTE_DURATION_MS    300000  // Muted via app for 5 mins
-
-// Posture complementary filter
-#define COMPLEMENTARY_ALPHA         0.96f
-
-// IMU Calibration Offsets (in degrees)
-#define IMU_PITCH_OFFSET            -13.3f
-#define IMU_ROLL_OFFSET             -3.7f
+#define HR_SAMPLE_RATE_MS           5     // 200 Hz analog sampling
 
 // FreeRTOS Task Stack Sizes
 #define STACK_SIZE_BLE              4096

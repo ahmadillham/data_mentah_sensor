@@ -1,8 +1,8 @@
 /**
  * @file ble_server.h
- * @brief BLE GATT Server interface for the Sports Tracker.
+ * @brief BLE GATT Server interface for the Raw Sensor Monitor.
  *
- * Manages the NimBLE stack, GATT services (Custom Sport + Battery),
+ * Manages the NimBLE stack, GATT service,
  * characteristics, notifications, and connection callbacks.
  */
 
@@ -23,8 +23,13 @@ void ble_init();
 void ble_start_advertising();
 
 /**
- * @brief Pack and notify the Sensor Data characteristic.
- * Reads from g_sensorData under mutex protection.
+ * @brief Pack and notify the Raw Sensor Data characteristic.
+ * Reads from g_rawSensorData under mutex protection.
+ */
+void ble_notify_raw();
+
+/**
+ * @brief Pack and notify the Processed Sensor Data characteristic.
  */
 void ble_notify_sensors();
 
@@ -33,12 +38,6 @@ void ble_notify_sensors();
  * Reads from g_gpsData under mutex protection.
  */
 void ble_notify_gps();
-
-/**
- * @brief Pack and notify the Raw Sensor Data characteristic.
- * Reads from g_rawSensorData under mutex protection.
- */
-void ble_notify_raw();
 
 /**
  * @brief Check if a BLE client is currently connected.
