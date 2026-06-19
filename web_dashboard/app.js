@@ -3,24 +3,22 @@ const connectBtn = document.getElementById('connect-btn');
 const connectionStatus = document.getElementById('connection-status');
 const connectionDot = document.getElementById('connection-dot');
 const imuLog = document.getElementById('imu-log');
-const hrLog = document.getElementById('hr-log');
 
 // Processed Data UI Elements
-const heartIcon = document.querySelector('.heart-icon');
-const bpmVal = document.getElementById('bpm-val');
 const stepsVal = document.getElementById('steps-val');
 const pushupsVal = document.getElementById('pushups-val');
 const pitchVal = document.getElementById('pitch-val');
 const rollVal = document.getElementById('roll-val');
+const leanDir = document.getElementById('lean-dir');
+const tiltDir = document.getElementById('tilt-dir');
+const postureStatusBadge = document.getElementById('posture-status-badge');
 
 // Counters
 const logCounters = {
-    'imu-log': 0,
-    'hr-log': 0
+    'imu-log': 0
 };
 const counterElems = {
-    'imu-log': document.getElementById('imu-counter'),
-    'hr-log': document.getElementById('hr-counter')
+    'imu-log': document.getElementById('imu-counter')
 };
 
 // BLE UUIDs (Matching config.h)
@@ -90,7 +88,6 @@ function handleRawData(event) {
         const mz = view.getInt16(16, true);
         const hrRaw = view.getUint16(18, true);
 
-        appendLog(hrLog, `ADC_RAW:${hrRaw}`, 'data');
         appendLog(imuLog, `AX:${ax} AY:${ay} AZ:${az} | GX:${gx} GY:${gy} GZ:${gz} | MX:${mx} MY:${my} MZ:${mz}`, 'data');
     }
 }
@@ -107,16 +104,54 @@ function handleSensorData(event) {
         const roll = view.getFloat32(14, true).toFixed(1);
 
         // Update UI Processed Grid
-        updateValueWithAnimation(bpmVal, hr);
         updateValueWithAnimation(stepsVal, steps);
         updateValueWithAnimation(pushupsVal, pushups);
         updateValueWithAnimation(pitchVal, pitch);
         updateValueWithAnimation(rollVal, roll);
 
-        if (hr > 0) {
-            heartIcon.classList.add('beating');
+        // Posture Warning Logic (>10 degrees is considered bad posture)
+        const postureCard = pitchVal.closest('.glass-card');
+        const isBadPitch = Math.abs(pitch) > 10;
+        const isBadRoll = Math.abs(roll) > 10;
+
+        // Update direction texts
+        if (leanDir) {
+            if (pitch > 5) { leanDir.textContent = "Forward"; leanDir.style.color = isBadPitch ? "var(--accent-danger)" : "var(--text-main)"; }
+            else if (pitch < -5) { leanDir.textContent = "Backward"; leanDir.style.color = isBadPitch ? "var(--accent-danger)" : "var(--text-main)"; }
+            else { leanDir.textContent = "Centered"; leanDir.style.color = "var(--text-muted)"; }
+        }
+
+        if (tiltDir) {
+            if (roll > 5) { tiltDir.textContent = "Right"; tiltDir.style.color = isBadRoll ? "var(--accent-danger)" : "var(--text-main)"; }
+            else if (roll < -5) { tiltDir.textContent = "Left"; tiltDir.style.color = isBadRoll ? "var(--accent-danger)" : "var(--text-main)"; }
+            else { tiltDir.textContent = "Centered"; tiltDir.style.color = "var(--text-muted)"; }
+        }
+
+        if (isBadPitch || isBadRoll) {
+            postureCard.classList.add('warning-glow');
+            if (isBadPitch) pitchVal.classList.add('warning-text');
+            else pitchVal.classList.remove('warning-text');
+            
+            if (isBadRoll) rollVal.classList.add('warning-text');
+            else rollVal.classList.remove('warning-text');
+
+            if (postureStatusBadge) {
+                postureStatusBadge.textContent = "BAD POSTURE";
+                postureStatusBadge.style.background = "rgba(239, 68, 68, 0.15)";
+                postureStatusBadge.style.color = "#ef4444";
+                postureStatusBadge.style.borderColor = "rgba(239, 68, 68, 0.3)";
+            }
         } else {
-            heartIcon.classList.remove('beating');
+            postureCard.classList.remove('warning-glow');
+            pitchVal.classList.remove('warning-text');
+            rollVal.classList.remove('warning-text');
+
+            if (postureStatusBadge) {
+                postureStatusBadge.textContent = "GOOD";
+                postureStatusBadge.style.background = "rgba(16, 185, 129, 0.15)";
+                postureStatusBadge.style.color = "#10b981";
+                postureStatusBadge.style.borderColor = "rgba(16, 185, 129, 0.3)";
+            }
         }
     }
 }
@@ -149,11 +184,20 @@ async function trySubscribe(service, uuid, handler, label) {
 function onDisconnected(event) {
     console.log("Device disconnected.");
     appendLog(imuLog, 'BLE Disconnected.', 'warn');
-    appendLog(hrLog, 'BLE Disconnected.', 'warn');
     
     // Reset Processed UI
-    if (heartIcon) heartIcon.classList.remove('beating');
-    if (bpmVal) bpmVal.textContent = '--';
+    const postureCard = pitchVal ? pitchVal.closest('.glass-card') : null;
+    if (postureCard) postureCard.classList.remove('warning-glow');
+    if (pitchVal) pitchVal.classList.remove('warning-text');
+    if (rollVal) rollVal.classList.remove('warning-text');
+    if (leanDir) { leanDir.textContent = "Centered"; leanDir.style.color = "var(--text-muted)"; }
+    if (tiltDir) { tiltDir.textContent = "Centered"; tiltDir.style.color = "var(--text-muted)"; }
+    if (postureStatusBadge) {
+        postureStatusBadge.textContent = "GOOD";
+        postureStatusBadge.style.background = "rgba(16, 185, 129, 0.15)";
+        postureStatusBadge.style.color = "#10b981";
+        postureStatusBadge.style.borderColor = "rgba(16, 185, 129, 0.3)";
+    }
     
     resetUI();
 }
@@ -203,7 +247,6 @@ connectBtn.addEventListener('click', async () => {
         const hasRaw = await trySubscribe(service, CHAR_RAW_UUID, handleRawData, "Raw Sensor Data");
         if (hasRaw) {
             appendLog(imuLog, 'Streaming raw IMU data...', 'system');
-            appendLog(hrLog, 'Streaming raw ADC data...', 'system');
         } else {
             appendLog(imuLog, 'WARNING: Raw characteristic not found!', 'warn');
         }
