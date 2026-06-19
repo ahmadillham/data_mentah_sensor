@@ -4,18 +4,23 @@ const connectionStatus = document.getElementById('connection-status');
 const connectionDot = document.getElementById('connection-dot');
 const imuLog = document.getElementById('imu-log');
 const hrLog = document.getElementById('hr-log');
-const activityLog = document.getElementById('activity-log');
+
+// Processed Data UI Elements
+const heartIcon = document.querySelector('.heart-icon');
+const bpmVal = document.getElementById('bpm-val');
+const stepsVal = document.getElementById('steps-val');
+const pushupsVal = document.getElementById('pushups-val');
+const pitchVal = document.getElementById('pitch-val');
+const rollVal = document.getElementById('roll-val');
 
 // Counters
 const logCounters = {
     'imu-log': 0,
-    'hr-log': 0,
-    'activity-log': 0
+    'hr-log': 0
 };
 const counterElems = {
     'imu-log': document.getElementById('imu-counter'),
-    'hr-log': document.getElementById('hr-counter'),
-    'activity-log': document.getElementById('activity-counter')
+    'hr-log': document.getElementById('hr-counter')
 };
 
 // BLE UUIDs (Matching config.h)
@@ -101,8 +106,28 @@ function handleSensorData(event) {
         const pitch = view.getFloat32(10, true).toFixed(1);
         const roll = view.getFloat32(14, true).toFixed(1);
 
-        appendLog(hrLog, `BPM:${hr}`, 'data');
-        appendLog(activityLog, `STEPS:${steps} PUSHUPS:${pushups} PITCH:${pitch}° ROLL:${roll}°`, 'data');
+        // Update UI Processed Grid
+        updateValueWithAnimation(bpmVal, hr);
+        updateValueWithAnimation(stepsVal, steps);
+        updateValueWithAnimation(pushupsVal, pushups);
+        updateValueWithAnimation(pitchVal, pitch);
+        updateValueWithAnimation(rollVal, roll);
+
+        if (hr > 0) {
+            heartIcon.classList.add('beating');
+        } else {
+            heartIcon.classList.remove('beating');
+        }
+    }
+}
+
+function updateValueWithAnimation(element, newValue) {
+    if (element && element.textContent !== newValue.toString()) {
+        element.style.transform = 'scale(1.1)';
+        element.textContent = newValue;
+        setTimeout(() => {
+            element.style.transform = 'scale(1)';
+        }, 150);
     }
 }
 
@@ -125,7 +150,11 @@ function onDisconnected(event) {
     console.log("Device disconnected.");
     appendLog(imuLog, 'BLE Disconnected.', 'warn');
     appendLog(hrLog, 'BLE Disconnected.', 'warn');
-    appendLog(activityLog, 'BLE Disconnected.', 'warn');
+    
+    // Reset Processed UI
+    if (heartIcon) heartIcon.classList.remove('beating');
+    if (bpmVal) bpmVal.textContent = '--';
+    
     resetUI();
 }
 
@@ -182,9 +211,9 @@ connectBtn.addEventListener('click', async () => {
         // Subscribe to Processed Activity Data
         const hasSensor = await trySubscribe(service, CHAR_SENSOR_DATA_UUID, handleSensorData, "Activity Data");
         if (hasSensor) {
-            appendLog(activityLog, 'Streaming activity tracking data...', 'system');
+            console.log('Streaming activity tracking data...');
         } else {
-            appendLog(activityLog, 'WARNING: Activity characteristic not found!', 'warn');
+            console.log('WARNING: Activity characteristic not found!');
         }
 
         // Update UI

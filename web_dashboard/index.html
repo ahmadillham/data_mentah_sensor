@@ -65,23 +65,79 @@
                 </div>
             </div>
 
-            <!-- Terminal 3: Activity Tracker -->
-            <div class="terminal-card">
-                <div class="terminal-header">
-                    <div class="window-controls">
-                        <span class="control close"></span>
-                        <span class="control minimize"></span>
-                        <span class="control maximize"></span>
+        </main>
+
+        <div style="margin-top: 3rem; margin-bottom: 1rem; border-top: 1px solid var(--card-border); padding-top: 2rem;">
+            <h2 style="font-size: 1.2rem; font-weight: 800; color: var(--text-secondary); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 1.5rem;">PROCESSED DATA</h2>
+            <div class="processed-grid">
+                <!-- Heart Rate Card -->
+                <div class="glass-card metric-card">
+                    <div class="card-header">
+                        <svg class="icon heart-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
+                        <h2>Heart Rate</h2>
                     </div>
-                    <h2 class="terminal-title">ACTIVITY TRACKER</h2>
-                    <span class="data-counter" id="activity-counter">0</span>
+                    <div class="card-body">
+                        <div class="value-display">
+                            <span id="bpm-val" class="value">--</span>
+                            <span class="unit">BPM</span>
+                        </div>
+                    </div>
                 </div>
-                <div class="terminal-body" id="activity-log">
-                    <div class="log-entry system">Waiting for activity data...</div>
+
+                <!-- Steps Card -->
+                <div class="glass-card metric-card">
+                    <div class="card-header">
+                        <svg class="icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 4v16"/><path d="M17 4v16"/><path d="M19 8H5"/><path d="M19 16H5"/><path d="M9 4v16"/></svg>
+                        <h2>Steps Taken</h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="value-display">
+                            <span id="steps-val" class="value text-gradient">0</span>
+                            <span class="unit">steps</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pushups Card -->
+                <div class="glass-card metric-card">
+                    <div class="card-header">
+                        <svg class="icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m14.5 21-5-5"/><path d="m4 10.5 5-5"/><path d="m20 4-4 4"/><path d="M14.5 10.5 4 21"/><path d="m14.5 21 5.5-5.5"/></svg>
+                        <h2>Push-ups</h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="value-display">
+                            <span id="pushups-val" class="value text-gradient-alt">0</span>
+                            <span class="unit">reps</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Posture Card -->
+                <div class="glass-card metric-card posture-card">
+                    <div class="card-header">
+                        <svg class="icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
+                        <h2>Posture (Pitch/Roll)</h2>
+                    </div>
+                    <div class="card-body posture-body">
+                        <div class="posture-item">
+                            <span class="posture-label">Pitch</span>
+                            <div class="value-display small">
+                                <span id="pitch-val" class="value">0.0</span>
+                                <span class="unit">°</span>
+                            </div>
+                        </div>
+                        <div class="divider"></div>
+                        <div class="posture-item">
+                            <span class="posture-label">Roll</span>
+                            <div class="value-display small">
+                                <span id="roll-val" class="value">0.0</span>
+                                <span class="unit">°</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
-
-        </main>
+        </div>
     </div>
 
     <script src="app.js"></script>
