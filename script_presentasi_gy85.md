@@ -1,0 +1,3 @@
+# Script Presentasi: Pengambilan Data Mentah dari Sensor GY-85
+
+"Modul GY-85 terdiri dari tiga chip sensor, yaitu Accelerometer ADXL345, Gyroscope ITG3200, dan Magnetometer HMC5883L, yang semuanya terhubung ke mikrokontroler ESP32 melalui protokol komunikasi I2C. ESP32 membaca data mentah dari masing-masing chip secara bergantian dengan cara mengirim sinyal ke alamat I2C chip tersebut, lalu meminta 6 byte data dari register penyimpanan di dalamnya. Setiap 2 byte kemudian digabungkan menjadi satu nilai integer untuk sumbu X, Y, dan Z, sehingga total dihasilkan 9 nilai data mentah. Seluruh data ini dikemas ke dalam satu paket byte array dan dikirim secara real-time ke web dashboard melalui Bluetooth Low Energy menggunakan mekanisme Notify."
